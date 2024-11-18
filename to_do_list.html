@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List </title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 min-h-screen flex items-center justify-center">
+  <div class="container max-w-5xl p-6 bg-white rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center text-gray-700 mb-6">To-Do List</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Task Management Section -->
+      <div class="col-span-2 bg-blue-50 p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">Task Management</h2>
+        
+        <div class="flex flex-col md:flex-row gap-2 mb-4">
+          <input type="text" id="taskInput" placeholder="Add a new task" 
+                 class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <input type="date" id="taskDate" 
+                 class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select id="taskPriority" 
+                  class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Low">Low Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="High">High Priority</option>
+          </select>
+          <button onclick="addTask()" 
+                  class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg">Add</button>
+        </div>
+        
+        <div id="taskListContainer" class="overflow-y-auto max-h-80">
+          <!-- Task list organized by dates will be added here -->
+        </div>
+      </div>
+
+      <!-- Task Completion Chart Section -->
+      <div class="bg-yellow-50 p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-bold text-yellow-700 mb-4">Task Completion</h2>
+        <canvas id="completionChart" width="200" height="200"></canvas>
+        <p class="text-center text-gray-600 mt-4">Task Completion Percentage</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="to_do_list.js"></script>
+</body>
+</html>
