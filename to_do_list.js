@@ -155,5 +155,3 @@ function getPriorityColor(priority) {
       return '';
   }  
 }
-
-
