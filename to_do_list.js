@@ -6,20 +6,42 @@ function addTask() {
   const taskInput = document.getElementById('taskInput').value;
   const taskDate = document.getElementById('taskDate').value;
   const taskPriority = document.getElementById('taskPriority').value;
+  const taskReminder = document.getElementById('taskReminder').value;
 
-  if (taskInput.trim() === "" || taskDate === "") return;
+  if (taskInput.trim() === "" || taskDate === "") {
+    alert("Please fill in the task details.");
+    return;
+  }
 
-  if (!tasks[taskDate]) {
-    tasks[taskDate] = [];
+  // Parse the date correctly, adjusting for time zone issues
+  const selectedDate = new Date(taskDate); // Convert input string to Date object
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0); // Set current date to midnight to ignore time
+
+  if (selectedDate < currentDate) {
+    alert("Please select a future date.");
+    return;
+  }
+
+  // Fix for time zone issues: Set time to midnight to avoid time zone shifts
+  selectedDate.setHours(0, 0, 0, 0);
+
+  // Ensure the task date is stored as a string in the correct format without time adjustments
+  const formattedDate = formatDate(selectedDate); // Use the formatted date
+
+  if (!tasks[formattedDate]) {
+    tasks[formattedDate] = [];
   }
 
   const task = {
     text: taskInput,
     completed: false,
-    priority: taskPriority
+    priority: taskPriority,
+    reminder: taskReminder
   };
-  tasks[taskDate].push(task);
-  
+
+  tasks[formattedDate].push(task);
+
   updateTaskList();
   updateChart();
 
@@ -27,6 +49,7 @@ function addTask() {
   document.getElementById('taskInput').value = "";
   document.getElementById('taskDate').value = "";
   document.getElementById('taskPriority').value = "Low";
+  document.getElementById('taskReminder').value = "";
 }
 
 // Function to update the task list display
@@ -38,8 +61,9 @@ function updateTaskList() {
     const dateSection = document.createElement('div');
     dateSection.className = "mb-4";
 
+    // Format the date consistently
     const dateTitle = document.createElement('h2');
-    dateTitle.textContent = new Date(date).toLocaleDateString();
+    dateTitle.textContent = date; // Display the date directly
     dateTitle.className = "text-lg font-semibold text-gray-700 mb-2";
 
     const ul = document.createElement('ul');
@@ -55,9 +79,10 @@ function updateTaskList() {
       checkbox.checked = task.completed;
       checkbox.onchange = () => toggleTaskCompletion(date, index);
 
-      // Task text with priority label
+      // Task text with priority and reminder label
       const taskText = document.createElement('span');
-      taskText.innerHTML = `${task.text} <span class="text-xs font-semibold">(${task.priority} Priority)</span>`;
+      let reminderText = task.reminder ? ` - Reminder set for ${formatDate(new Date(task.reminder))}` : '';
+      taskText.innerHTML = `${task.text} <span class="text-xs font-semibold">(${task.priority} Priority)</span>${reminderText}`;
       if (task.completed) {
         taskText.className = "line-through text-gray-500";
       }
@@ -80,6 +105,14 @@ function updateTaskList() {
   }
 }
 
+// Function to format the date as MM/DD/YYYY
+function formatDate(date) {
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
 // Function to toggle task completion
 function toggleTaskCompletion(date, index) {
   tasks[date][index].completed = !tasks[date][index].completed;
@@ -96,6 +129,23 @@ function deleteTask(date, index) {
   updateTaskList();
   updateChart();
 }
+
+// Function to check and alert reminders
+function checkReminders() {
+  const now = new Date().toISOString();
+
+  for (const date in tasks) {
+    tasks[date].forEach(task => {
+      if (task.reminder && task.reminder <= now && !task.completed) {
+        alert(`Reminder: ${task.text} is due now!`);
+        task.reminder = ""; // Clear the reminder after alerting
+      }
+    });
+  }
+}
+
+// Call checkReminders every minute
+setInterval(checkReminders, 60000);
 
 // Function to calculate the completion percentage
 function calculateCompletionPercentage() {
@@ -115,7 +165,7 @@ function calculateCompletionPercentage() {
 // Function to update the pie chart
 function updateChart() {
   const completionPercentage = calculateCompletionPercentage();
-  
+
   if (chart) {
     chart.destroy(); // Destroy previous chart before re-rendering
   }
@@ -153,5 +203,5 @@ function getPriorityColor(priority) {
       return 'bg-green-100 border-l-4 border-green-500';
     default:
       return '';
-  }  
+  }
 }
