@@ -1,5 +1,7 @@
 let tasks = {};
 let chart;
+let currentEditDate = null;
+let currentEditIndex = null;
 
 // Function to add a new task
 function addTask() {
@@ -13,21 +15,9 @@ function addTask() {
     return;
   }
 
-  // Parse the date correctly, adjusting for time zone issues
-  const selectedDate = new Date(taskDate); // Convert input string to Date object
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0); // Set current date to midnight to ignore time
-
-  if (selectedDate < currentDate) {
-    alert("Please select a future date.");
-    return;
-  }
-
-  // Fix for time zone issues: Set time to midnight to avoid time zone shifts
+  const selectedDate = new Date(taskDate);
   selectedDate.setHours(0, 0, 0, 0);
-
-  // Ensure the task date is stored as a string in the correct format without time adjustments
-  const formattedDate = formatDate(selectedDate); // Use the formatted date
+  const formattedDate = formatDate(selectedDate);
 
   if (!tasks[formattedDate]) {
     tasks[formattedDate] = [];
@@ -45,11 +35,60 @@ function addTask() {
   updateTaskList();
   updateChart();
 
-  // Clear inputs
   document.getElementById('taskInput').value = "";
   document.getElementById('taskDate').value = "";
   document.getElementById('taskPriority').value = "Low";
   document.getElementById('taskReminder').value = "";
+}
+
+// Function to open the edit modal with the selected task details
+function openEditModal(date, index) {
+  currentEditDate = date;
+  currentEditIndex = index;
+
+  const task = tasks[date][index];
+  document.getElementById('editTaskInput').value = task.text;
+  document.getElementById('editTaskDate').value = date;
+  document.getElementById('editTaskPriority').value = task.priority;
+  document.getElementById('editTaskReminder').value = task.reminder;
+
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+// Function to close the edit modal
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+}
+
+// Function to save the edited task
+function saveEditedTask() {
+  const editedText = document.getElementById('editTaskInput').value;
+  const editedDate = document.getElementById('editTaskDate').value;
+  const editedPriority = document.getElementById('editTaskPriority').value;
+  const editedReminder = document.getElementById('editTaskReminder').value;
+
+  if (!editedText || !editedDate) {
+    alert("Please fill in all task details.");
+    return;
+  }
+
+  const newDate = formatDate(new Date(editedDate));
+  const updatedTask = {
+    text: editedText,
+    completed: tasks[currentEditDate][currentEditIndex].completed,
+    priority: editedPriority,
+    reminder: editedReminder
+  };
+
+  tasks[currentEditDate].splice(currentEditIndex, 1);
+  if (tasks[currentEditDate].length === 0) delete tasks[currentEditDate];
+
+  if (!tasks[newDate]) tasks[newDate] = [];
+  tasks[newDate].push(updatedTask);
+
+  closeEditModal();
+  updateTaskList();
+  updateChart();
 }
 
 // Function to update the task list display
@@ -61,9 +100,8 @@ function updateTaskList() {
     const dateSection = document.createElement('div');
     dateSection.className = "mb-4";
 
-    // Format the date consistently
     const dateTitle = document.createElement('h2');
-    dateTitle.textContent = date; // Display the date directly
+    dateTitle.textContent = date;
     dateTitle.className = "text-lg font-semibold text-gray-700 mb-2";
 
     const ul = document.createElement('ul');
@@ -73,35 +111,36 @@ function updateTaskList() {
       const li = document.createElement('li');
       li.className = `flex justify-between items-center p-2 mb-2 rounded shadow ${getPriorityColor(task.priority)}`;
 
-      // Checkbox for completion
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.checked = task.completed;
       checkbox.onchange = () => toggleTaskCompletion(date, index);
 
-      // Task text with priority and reminder label
       const taskText = document.createElement('span');
       let reminderText = task.reminder ? ` - Reminder set for ${formatDate(new Date(task.reminder))}` : '';
-      taskText.innerHTML = `${task.text} <span class="text-xs font-semibold">(${task.priority} Priority)</span>${reminderText}`;
-      if (task.completed) {
-        taskText.className = "line-through text-gray-500";
-      }
+      taskText.innerHTML = `${task.text}${reminderText}`;
+      if (task.completed) taskText.classList.add('line-through');
 
-      // Delete button
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = "Delete";
-      deleteBtn.className = "text-red-500";
-      deleteBtn.onclick = () => deleteTask(date, index);
+      const buttonsContainer = document.createElement('div');
+      buttonsContainer.className = 'flex gap-2';
 
-      li.appendChild(checkbox);
-      li.appendChild(taskText);
-      li.appendChild(deleteBtn);
-      ul.appendChild(li);
+      const editButton = document.createElement('button');
+      editButton.className = "text-blue-500";
+      editButton.textContent = "Edit";
+      editButton.onclick = () => openEditModal(date, index);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.className = "text-red-500";
+      deleteButton.textContent = "Delete";
+      deleteButton.onclick = () => deleteTask(date, index);
+
+      buttonsContainer.append(editButton, deleteButton);
+      li.append(checkbox, taskText, buttonsContainer);
+      ul.append(li);
     });
 
-    dateSection.appendChild(dateTitle);
-    dateSection.appendChild(ul);
-    taskListContainer.appendChild(dateSection);
+    dateSection.append(dateTitle, ul);
+    taskListContainer.append(dateSection);
   }
 }
 
