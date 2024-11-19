@@ -25,7 +25,7 @@ function addTask() {
 
   const task = {
     text: taskInput,
-    completed: false,
+    status: "Incomplete", // New "status" property
     priority: taskPriority,
     reminder: taskReminder
   };
@@ -75,7 +75,7 @@ function saveEditedTask() {
   const newDate = formatDate(new Date(editedDate));
   const updatedTask = {
     text: editedText,
-    completed: tasks[currentEditDate][currentEditIndex].completed,
+    status: tasks[currentEditDate][currentEditIndex].status,
     priority: editedPriority,
     reminder: editedReminder
   };
@@ -111,15 +111,19 @@ function updateTaskList() {
       const li = document.createElement('li');
       li.className = `flex justify-between items-center p-2 mb-2 rounded shadow ${getPriorityColor(task.priority)}`;
 
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = task.completed;
-      checkbox.onchange = () => toggleTaskCompletion(date, index);
+      const statusSelect = document.createElement('select');
+      statusSelect.innerHTML = `
+        <option value="Incomplete" ${task.status === "Incomplete" ? "selected" : ""}>Incomplete</option>
+        <option value="Ongoing" ${task.status === "Ongoing" ? "selected" : ""}>Ongoing</option>
+        <option value="Completed" ${task.status === "Completed" ? "selected" : ""}>Completed</option>
+      `;
+      statusSelect.onchange = () => changeTaskStatus(date, index, statusSelect.value);
 
       const taskText = document.createElement('span');
       let reminderText = task.reminder ? ` - Reminder set for ${formatDate(new Date(task.reminder))}` : '';
       taskText.innerHTML = `${task.text}${reminderText}`;
-      if (task.completed) taskText.classList.add('line-through');
+      if (task.status === "Completed") taskText.classList.add('line-through');
+      else if (task.status === "Ongoing") taskText.classList.add('italic');
 
       const buttonsContainer = document.createElement('div');
       buttonsContainer.className = 'flex gap-2';
@@ -135,7 +139,7 @@ function updateTaskList() {
       deleteButton.onclick = () => deleteTask(date, index);
 
       buttonsContainer.append(editButton, deleteButton);
-      li.append(checkbox, taskText, buttonsContainer);
+      li.append(statusSelect, taskText, buttonsContainer);
       ul.append(li);
     });
 
@@ -144,19 +148,19 @@ function updateTaskList() {
   }
 }
 
+// Function to change task status
+function changeTaskStatus(date, index, newStatus) {
+  tasks[date][index].status = newStatus;
+  updateTaskList();
+  updateChart();
+}
+
 // Function to format the date as MM/DD/YYYY
 function formatDate(date) {
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
   const year = date.getFullYear();
   return `${month}/${day}/${year}`;
-}
-
-// Function to toggle task completion
-function toggleTaskCompletion(date, index) {
-  tasks[date][index].completed = !tasks[date][index].completed;
-  updateTaskList();
-  updateChart();
 }
 
 // Function to delete a task
@@ -175,7 +179,7 @@ function checkReminders() {
 
   for (const date in tasks) {
     tasks[date].forEach(task => {
-      if (task.reminder && task.reminder <= now && !task.completed) {
+      if (task.reminder && task.reminder <= now && task.status === "Incomplete") {
         alert(`Reminder: ${task.text} is due now!`);
         task.reminder = ""; // Clear the reminder after alerting
       }
@@ -194,7 +198,7 @@ function calculateCompletionPercentage() {
   for (const date in tasks) {
     tasks[date].forEach(task => {
       totalTasks += 1;
-      if (task.completed) completedTasks += 1;
+      if (task.status === "Completed") completedTasks += 1;
     });
   }
 
@@ -213,11 +217,15 @@ function updateChart() {
   chart = new Chart(ctx, {
     type: 'pie',
     data: {
-      labels: ['Completed', 'Incomplete'],
+      labels: ['Completed', 'Ongoing', 'Incomplete'],
       datasets: [{
         label: 'Task Completion',
-        data: [completionPercentage, 100 - completionPercentage],
-        backgroundColor: ['#4CAF50', '#F44336']
+        data: [
+          calculateStatusPercentage("Completed"),
+          calculateStatusPercentage("Ongoing"),
+          calculateStatusPercentage("Incomplete")
+        ],
+        backgroundColor: ['#4CAF50', '#FFC107', '#F44336']
       }]
     },
     options: {
@@ -229,6 +237,21 @@ function updateChart() {
       }
     }
   });
+}
+
+// Function to calculate the percentage of tasks by status
+function calculateStatusPercentage(status) {
+  let totalTasks = 0;
+  let statusTasks = 0;
+
+  for (const date in tasks) {
+    tasks[date].forEach(task => {
+      totalTasks += 1;
+      if (task.status === status) statusTasks += 1;
+    });
+  }
+
+  return totalTasks === 0 ? 0 : Math.round((statusTasks / totalTasks) * 100);
 }
 
 // Function to return a color based on priority
